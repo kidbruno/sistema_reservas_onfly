@@ -34,7 +34,7 @@ API REST para gerenciamento de usuários e pedidos de viagem, construída com La
 ### 1) Clonar o projeto
 
 ```bash
-git clone <URL_DO_SEU_REPOSITORIO>
+git clone https://github.com/kidbruno/sistema_reservas_onfly
 cd sistema_reservas
 ```
 
