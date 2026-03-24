@@ -9,42 +9,83 @@ use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
-    function teste() {
-        return response()->json(['ok'=>true]);
-    }
-
-    function envio(Request $request) {
+    function InsertUser(Request $request): JsonResponse
+    {
         $validated = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|min:6'
+            'nome'   => 'required|string|max:60',
+            'idade'  => 'nullable|integer|min:0|max:99',
+            'email'  => 'required|email|max:100|unique:usuarios,email',
+            'senha'  => 'required|string|min:0|max:6',
+            'status' => 'in:ativo,cancelado,suspenso',
         ]);
 
-        return response()->json(['ok'=>true, 'email' => $validated['email']]);
+        $validated['senha'] = md5($validated['senha']);
+
+        $user = User::create($validated);
+
+        return response()->json([
+            'message' => 'Usuário inserido com sucesso. Id: ' . $user->Id,
+        ], 
+        Response::HTTP_OK);
     }
 
     function getUser(): JsonResponse
     {
-        // $users = User::select('id', 'name', 'email')->orderBy('id', 'DESC')->get();
-        $users = User::orderBy('id', 'ASC')->paginate(5);
-        // $users = User::all();
+        $users = User::orderBy('Id', 'ASC')->paginate(5);
+
+        $formattedUsers = $users->map(function($user) {
+            return [
+                'nome' => $user->nome,
+                'idade' => $user->idade,
+                'email' => $user->email,
+                'status' => $user->status,
+            ];
+        });
 
         return response()->json([
-            'status' => true,
-            'users' => $users
-        ], 200);
-
-        // return $users;
+            'usuarios' => $formattedUsers
+        ], Response::HTTP_OK);
     }
 
-    function getUserById($id): User
+    function getUserById($id): JsonResponse
     {
-       $user = User::find($id);
+        $user = User::find($id);
 
-    //    return response()->json([
-    //     'status' => true,
-    //     'user' => $user
-    //    ], Response::HTTP_OK);
+        if (! $user) {
+            return response()->json([
+                'message' => 'Usuário não encontrado.',
+            ], Response::HTTP_NOT_FOUND);
+        }
 
-        return $user;
+        return response()->json([
+            'nome' => $user->nome,
+            'idade' => $user->idade,
+            'email' => $user->email,
+            'status' => $user->status,
+        ], Response::HTTP_OK);
+    }
+
+    function deleteUser($id): JsonResponse
+    {
+        $user = User::find($id);
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'Usuário não encontrado.',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($user->status === 'cancelado') {
+            return response()->json([
+                'message' => 'Usuário já está inativado.',
+            ], Response::HTTP_OK);
+        }
+
+        $user->status = 'cancelado';
+        $user->save();
+
+        return response()->json([
+            'message' => 'Usuário inativado com sucesso.',
+        ], Response::HTTP_OK);
     }
 }
